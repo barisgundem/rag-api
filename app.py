@@ -76,10 +76,7 @@ async def upload_file(
         uuids = [str(uuid4()) for _ in documents]
         vector_store.add_documents(documents=documents, ids=uuids)
 
-        # Validate that the documents were successfully embedded
-        test_query_result = vector_store.similarity_search("dummy query", k=1)
-        if not test_query_result:
-            raise ValueError(f"Embedding failed for file_id: {file_id}.")
+        
 
         # Remove the temporary file
         os.remove(temp_path)
@@ -126,13 +123,7 @@ async def query_vector_store(
         logger.info(f"Generated metadata filter: {file_filter}")
 
 
-        # Validate metadata-based filtering
-        test_docs = vector_store.similarity_search(query="dummy", k=1, filter=file_filter)
-        if not test_docs:
-            logger.error(f"No documents found for file_ids: {file_id_list}")
-            raise ValueError(f"No documents found for file_ids: {file_id_list}")
-
-        logger.info(f"Test query returned documents: {[doc.page_content[:100] for doc in test_docs]}")
+        
 
         # Perform similarity search
         results = vector_store.similarity_search(query=query, k=k, filter=file_filter)
