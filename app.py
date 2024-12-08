@@ -26,12 +26,23 @@ COLLECTION_NAME = "rag_collection"
 client = QdrantClient(url=QDRANT_URL)
 embeddings = OllamaEmbeddings(model=MODEL, base_url=OLLAMA_URL)
 
+logger.info(f"-- STARTED --")
+
 # Create collection if it doesn't exist
 try:
-    client.create_collection(
-        collection_name=COLLECTION_NAME,
-        vectors_config=VectorParams(size=1024, distance=Distance.COSINE),
-    )
+    # client.create_collection(
+    #     collection_name=COLLECTION_NAME,
+    #     vectors_config=VectorParams(size=1024, distance=Distance.COSINE),
+    # )
+
+    existing_collections = client.get_collections()
+    if COLLECTION_NAME not in existing_collections:
+        client.create_collection(
+            collection_name=COLLECTION_NAME,
+            vectors_config=VectorParams(size=1024, distance=Distance.COSINE),
+        )
+    else:
+        logger.info(f"Collection {COLLECTION_NAME} already exists.")
 except Exception as e:
     print(f"Collection already exists or error in creating collection: {e}")
 
@@ -175,6 +186,23 @@ async def delete_file(file_id: str = Form(...)):
         return HTTPException(status_code=500, detail=f"Error deleting file: {str(e)}")
 
 
+# Add with other routes
+@app.get("/health")
+async def health_check():
+    try:
+        collections = client.get_collections()
+        # Baris - check if this is ok - I have added curl on docker to be able to do healthcheck on rag_api
+        # maybe there is a better solution but i need orchestrated starting of containers to be dependent of healthstatus of eachother
+        embeddings.embed_query("test") 
+        return JSONResponse(
+            status_code=200,
+            content={"status": "healthy"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=503,
+            content={"status": "unhealthy", "error": str(e)}
+        )
 
 # Run the application
 if __name__ == "__main__":
